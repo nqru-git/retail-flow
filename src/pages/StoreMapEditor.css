@@ -248,6 +248,47 @@
   gap: 24px;
 }
 
+.editor-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.editor-fields:disabled,
+.editor-back-button:disabled,
+.editor-save-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.layout-change-note {
+  margin-top: 28px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: white;
+}
+
+.layout-change-note > p {
+  margin-top: 10px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.editor-save-error {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #e4c9c5;
+  border-radius: 12px;
+  background: #fff5f3;
+  color: #a64338;
+  font-size: 13px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
 .map-properties {
   padding: 18px;
   border: 1px solid var(--color-border);

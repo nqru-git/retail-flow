@@ -10,6 +10,7 @@ export function toObservationRow(record) {
     started_at: record.startedAt,
     ended_at: record.endedAt,
     layout_version: record.layoutVersion,
+    layout_version_id: record.layoutVersionId ?? null,
     layout_snapshot: record.layoutSnapshot,
     route_steps: record.routeSteps,
     customer_service: record.customerService,
@@ -21,7 +22,8 @@ export function toObservationRow(record) {
 
 export function describeSupabaseError(error) {
   if (error?.code === 'SUPABASE_NOT_CONFIGURED') return error.message
-  if (['PGRST202', '42P01', '42883'].includes(error?.code)) return '保存先の準備が完了していません。Supabaseで supabase/schema.sql を実行してください。'
+  if (['PGRST202', '42P01', '42883'].includes(error?.code)) return '保存先の準備が完了していません。Supabaseで supabase/schema.sql と supabase/layout-history.sql を実行してください。'
+  if (error?.message === 'OBSERVATION_LAYOUT_MISMATCH') return '観察開始時の配置情報と保存先が一致しません。観察データは保持されています。配置履歴の設定を確認してください。'
   if (['42501', 'PGRST301'].includes(error?.code) || error?.status === 401 || error?.status === 403) return 'Supabaseの公開キーとアクセス権限を確認してください。'
   return 'Supabaseとの通信に失敗しました。接続や設定を確認して、もう一度お試しください。'
 }

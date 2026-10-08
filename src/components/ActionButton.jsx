@@ -1,12 +1,13 @@
 import Icon from './Icon.jsx'
 
-export default function ActionButton({ label, description, icon, variant = 'secondary', onClick }) {
+export default function ActionButton({ label, description, icon, variant = 'secondary', onClick, disabled = false }) {
   return (
     <button
       className={`action-button action-button--${variant}`}
       type="button"
       aria-label={label}
       onClick={onClick}
+      disabled={disabled}
     >
       <span className="action-button__icon">
         <Icon name={icon} />

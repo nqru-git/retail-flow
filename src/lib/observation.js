@@ -11,7 +11,7 @@ export function observationDate(timestamp) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(timestamp))
 }
 
-export function createObservationState({ number, layoutVersion, elements, startedAt, id }) {
+export function createObservationState({ number, layoutVersion, layoutVersionId = null, elements, startedAt, id }) {
   const mapElements = cloneMapElements(elements)
   return {
     stage: 'observing',
@@ -25,6 +25,7 @@ export function createObservationState({ number, layoutVersion, elements, starte
       endedAt: null,
       date: observationDate(startedAt),
       layoutVersion,
+      layoutVersionId,
       layoutSnapshot: cloneMapElements(mapElements),
       routeSteps: [],
       customerService: { hadService: false, startedAt: null, startedZone: null, sessions: [] },

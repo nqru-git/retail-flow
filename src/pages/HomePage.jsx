@@ -4,8 +4,9 @@ import HomeNavigation from '../components/home/HomeNavigation.jsx'
 import LayoutVersionCard from '../components/home/LayoutVersionCard.jsx'
 import StoreHeader from '../components/home/StoreHeader.jsx'
 import TodaySummary from '../components/home/TodaySummary.jsx'
+import LayoutStatus from '../components/layout-history/LayoutStatus.jsx'
 
-export default function HomePage({ data, onAction, notice, onRetrySummary }) {
+export default function HomePage({ data, onAction, notice, onRetrySummary, layoutState }) {
   return (
     <div className="app-shell">
       <div className="brand-bar">
@@ -19,6 +20,7 @@ export default function HomePage({ data, onAction, notice, onRetrySummary }) {
       <main>
         <StoreHeader storeName={data.storeName} />
         <LayoutVersionCard version={data.layoutVersion} />
+        <LayoutStatus loading={layoutState.loading} error={layoutState.error} localNotice={layoutState.localNotice} onRetry={layoutState.refresh} />
 
         <div className="home-actions">
           <ActionButton
@@ -27,8 +29,9 @@ export default function HomePage({ data, onAction, notice, onRetrySummary }) {
             icon="plus"
             variant="primary"
             onClick={() => onAction('observation')}
+            disabled={!layoutState.currentLayout || layoutState.loading}
           />
-          <ActionButton label="配置を変更" icon="layout" onClick={() => onAction('layout')} />
+          <ActionButton label="配置を変更" icon="layout" onClick={() => onAction('layout')} disabled={!layoutState.currentLayout || layoutState.loading} />
         </div>
 
         <TodaySummary {...data.today} onRetry={onRetrySummary} />
@@ -36,7 +39,7 @@ export default function HomePage({ data, onAction, notice, onRetrySummary }) {
         <p className="feature-notice" role="status" aria-atomic="true">{notice}</p>
       </main>
 
-      <footer className="app-footer">店舗名・配置は仮データです。<br />店舗マップと保存前の観察は、再読み込みするとリセットされます。</footer>
+      <footer className="app-footer">店舗名・初期配置はサンプルです。<br />保存前の編集・観察は、再読み込みするとリセットされます。</footer>
     </div>
   )
 }

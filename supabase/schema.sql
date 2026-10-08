@@ -1,4 +1,5 @@
 -- Phase 4: one-store, no-login MVP. Run the entire file in Supabase SQL Editor.
+-- For Phase 5, run layout-history.sql AFTER this file (including on re-runs).
 -- Public clients can append completed observations and read aggregate counts only.
 -- Observation details, updates and deletes are not exposed to public clients.
 begin;

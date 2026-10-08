@@ -183,6 +183,12 @@
   transform: translateY(1px);
 }
 
+.action-button:disabled,
+.summary-retry:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .today-summary {
   margin-top: 30px;
 }
