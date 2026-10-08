@@ -1,16 +1,44 @@
-# React + Vite
+# Retail Flow
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+実店舗での商品配置の変更と、顧客の動線・行動・購買の変化を記録・比較する MVP です。
+仕様の基準は [SPEC.md](./SPEC.md) です。現在は Phase 1 のホーム画面のみ実装しています。
 
-Currently, two official plugins are available:
+## 起動と確認
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```sh
+npm install
+npm run dev
+```
 
-## React Compiler
+```sh
+npm run lint
+npm run build
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+スマートフォンから開発サーバーを確認する場合は、同じネットワークで
+`npm run dev -- --host 0.0.0.0` を実行し、表示された Network URL を開いてください。
 
-## Expanding the Oxlint configuration
+## Phase 1 の実装範囲
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+- スマホ優先のホーム画面
+- 店舗名と現在の配置バージョン（仮データ：サンプル店・v2）
+- 最も目立つ「観察を開始」ボタンと、その下の「配置を変更」ボタン
+- 今日の観察人数・購入人数（仮データ：18人・4人）
+- 「分析を見る」「配置履歴」ボタン
+
+4つのボタンを押すと、対応する機能が準備中であることをホーム内に表示します。
+画面遷移、観察記録、配置の編集・保存、履歴、分析の処理は未実装です。
+Supabase、AI、外部サービスとの通信は導入していません。
+
+## コンポーネント構成
+
+- `src/App.jsx`：ホームのデータとボタン操作を接続
+- `src/pages/HomePage.jsx`：ホーム画面の構成
+- `src/components/home/`：店舗名、配置バージョン、人数、ナビゲーション
+- `src/components/ActionButton.jsx`：共通のアクションボタン
+- `src/components/Icon.jsx`：外部ライブラリを使わない SVG アイコン
+- `src/data/homePreview.js`：表示用の仮データ
+- `src/index.css`：共通スタイルと色の定義
+- `src/App.css`：ホーム画面のレイアウトとスマホ向けスタイル
+
+表示用データと操作は props で渡しているため、後続フェーズでデータ取得や各機能への接続を追加できます。
