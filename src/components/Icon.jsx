@@ -19,6 +19,10 @@ const shapes = {
     </>
   ),
   plus: <path d="M12 5v14M5 12h14" />,
+  undo: <path d="M3 4v7h7M3 11a8 8 0 1 1 2 8" />,
+  stop: <path d="M8 5v14M16 5v14" />,
+  touch: <path d="M9 12V5a2 2 0 0 1 4 0v7l1-3a2 2 0 0 1 3 0l1 2a2 2 0 0 1 3 1v5a5 5 0 0 1-5 5h-3a5 5 0 0 1-4-2l-5-6a2 2 0 0 1 3-3l2 1Z" />,
+  tag: <><path d="M3 3h7l11 11-7 7L3 10V3Z" /><circle cx="7" cy="7" r="1" /></>,
   back: <path d="M19 12H5m5-5-5 5 5 5" />,
   door: (
     <>
@@ -76,5 +80,5 @@ export default function Icon({ name, className = '' }) {
     >
       {shapes[name]}
     </svg>
-  ) 
+  )
 }

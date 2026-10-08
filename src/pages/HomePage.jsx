@@ -36,7 +36,7 @@ export default function HomePage({ data, onAction, notice }) {
         <p className="feature-notice" role="status" aria-atomic="true">{notice}</p>
       </main>
 
-      <footer className="app-footer">店舗名・配置・人数は仮データです。</footer>
+      <footer className="app-footer">店舗名・配置と開始時の人数は仮データです。<br />今回の記録は再読み込みするとリセットされます。</footer>
     </div>
   )
 }
