@@ -5,7 +5,7 @@ import LayoutVersionCard from '../components/home/LayoutVersionCard.jsx'
 import StoreHeader from '../components/home/StoreHeader.jsx'
 import TodaySummary from '../components/home/TodaySummary.jsx'
 
-export default function HomePage({ data, onAction, notice }) {
+export default function HomePage({ data, onAction, notice, onRetrySummary }) {
   return (
     <div className="app-shell">
       <div className="brand-bar">
@@ -31,12 +31,12 @@ export default function HomePage({ data, onAction, notice }) {
           <ActionButton label="配置を変更" icon="layout" onClick={() => onAction('layout')} />
         </div>
 
-        <TodaySummary {...data.today} />
+        <TodaySummary {...data.today} onRetry={onRetrySummary} />
         <HomeNavigation onAction={onAction} />
         <p className="feature-notice" role="status" aria-atomic="true">{notice}</p>
       </main>
 
-      <footer className="app-footer">店舗名・配置と開始時の人数は仮データです。<br />今回の記録は再読み込みするとリセットされます。</footer>
+      <footer className="app-footer">店舗名・配置は仮データです。<br />店舗マップと保存前の観察は、再読み込みするとリセットされます。</footer>
     </div>
   )
 }

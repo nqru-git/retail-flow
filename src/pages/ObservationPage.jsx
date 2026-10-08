@@ -7,6 +7,7 @@ import ObservationEvents from '../components/observation/ObservationEvents.jsx'
 import ObservationEndActions from '../components/observation/ObservationEndActions.jsx'
 import CustomerServiceView from '../components/observation/CustomerServiceView.jsx'
 import PurchaseSelection from '../components/observation/PurchaseSelection.jsx'
+import ObservationSaveStatus from '../components/observation/ObservationSaveStatus.jsx'
 import { getPurchaseCandidates, observationReducer } from '../lib/observation.js'
 import './Observation.css'
 
@@ -15,9 +16,8 @@ export default function ObservationPage({ initialState, onComplete, onDiscard })
   const observation = state.observation
 
   useEffect(() => {
-    if (state.stage === 'completed') onComplete(state.observation)
     if (state.stage === 'discarded') onDiscard()
-  }, [state.stage, state.observation, onComplete, onDiscard])
+  }, [state.stage, onDiscard])
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -31,7 +31,10 @@ export default function ObservationPage({ initialState, onComplete, onDiscard })
     if (window.confirm('この観察を記録せずに破棄しますか？')) dispatch({ type: 'discard' })
   }
 
-  if (state.stage === 'completed' || state.stage === 'discarded') return null
+  if (state.stage === 'discarded') return null
+  if (state.stage === 'completed') {
+    return <div className="app-shell app-shell--observation"><ObservationSaveStatus record={observation} onSaved={onComplete} /></div>
+  }
 
   if (state.stage === 'serving') {
     return <div className="app-shell app-shell--observation"><CustomerServiceView zoneName={observation.customerService.sessions.at(-1).startedZone.zoneName} onResume={() => dispatch({ type: 'resume', at: new Date().toISOString() })} onPurchase={beginPurchase} onNoPurchase={noPurchase} /></div>

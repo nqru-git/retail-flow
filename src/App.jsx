@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import HomePage from './pages/HomePage.jsx'
 import StoreMapEditorPage from './pages/StoreMapEditorPage.jsx'
 import ObservationPage from './pages/ObservationPage.jsx'
 import { homePreview } from './data/homePreview.js'
 import { initialStoreMap } from './data/initialStoreMap.js'
 import { cloneMapElements } from './lib/storeMap.js'
-import { createObservationState, observationDate, summarizeObservations } from './lib/observation.js'
+import { createObservationState, observationDate } from './lib/observation.js'
+import useTodaySummary from './hooks/useTodaySummary.js'
 import './App.css'
 
 const upcomingFeatureMessages = {
@@ -18,9 +19,10 @@ function App() {
   const [screen, setScreen] = useState('home')
   const [savedMap, setSavedMap] = useState(() => cloneMapElements(initialStoreMap))
   const [activeObservation, setActiveObservation] = useState(null)
-  const [observations, setObservations] = useState([])
+  const [summaryVersion, setSummaryVersion] = useState(0)
   const [todayDate, setTodayDate] = useState(() => observationDate(new Date().toISOString()))
   const nextObservationNumber = useRef(homePreview.today.observedCount + 1)
+  const { summary, retry: retrySummary } = useTodaySummary(todayDate, summaryVersion)
 
   useEffect(() => {
     const timer = window.setInterval(() => setTodayDate(observationDate(new Date().toISOString())), 60_000)
@@ -53,13 +55,13 @@ function App() {
     setScreen('home')
   }
 
-  function completeObservation(record) {
-    setObservations((current) => current.some((existing) => existing.id === record.id) ? current : [...current, record])
+  const completeObservation = useCallback((record) => {
     setActiveObservation(null)
     setTodayDate(observationDate(new Date().toISOString()))
-    setNotice(`観察 #${String(record.number).padStart(3, '0')} を記録しました（${record.result === 'purchase' ? '購入' : '非購入'}）。`)
+    setSummaryVersion((current) => current + 1)
+    setNotice(`観察 #${String(record.number).padStart(3, '0')} を保存しました（${record.result === 'purchase' ? '購入' : '非購入'}）。`)
     setScreen('home')
-  }
+  }, [])
 
   function discardObservation() {
     setActiveObservation(null)
@@ -82,16 +84,11 @@ function App() {
     )
   }
 
-  const recordedToday = summarizeObservations(observations, todayDate)
   const homeData = {
     ...homePreview,
-    today: {
-      observedCount: homePreview.today.observedCount + recordedToday.observedCount,
-      purchasedCount: homePreview.today.purchasedCount + recordedToday.purchasedCount,
-      recordedCount: recordedToday.observedCount,
-    },
+    today: summary,
   }
-  return <HomePage data={homeData} onAction={handleAction} notice={notice} />
+  return <HomePage data={homeData} onAction={handleAction} notice={notice} onRetrySummary={retrySummary} />
 }
 
 export default App

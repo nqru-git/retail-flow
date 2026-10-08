@@ -446,6 +446,49 @@
   text-align: left;
 }
 
+.observation-save-status {
+  padding-top: 48px;
+}
+
+.observation-save-status h1 {
+  margin-top: 8px;
+  font-size: 24px;
+}
+
+.observation-save-status p {
+  margin-top: 16px;
+  overflow-wrap: anywhere;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.observation-save-status .observation-save-status__result {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.observation-save-status .observation-save-status__error {
+  padding: 16px;
+  border: 1px solid #e4c9c5;
+  border-radius: 12px;
+  background: #fff5f3;
+  color: #a64338;
+}
+
+.observation-save-status__retry {
+  width: 100%;
+  min-height: 64px;
+  margin-top: 24px;
+  padding: 16px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--color-primary);
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+}
+
 .purchase-multiple-button {
   margin-top: 22px;
   border-color: #c3d6c9;
