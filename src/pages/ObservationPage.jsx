@@ -9,11 +9,13 @@ import CustomerServiceView from '../components/observation/CustomerServiceView.j
 import PurchaseSelection from '../components/observation/PurchaseSelection.jsx'
 import ObservationSaveStatus from '../components/observation/ObservationSaveStatus.jsx'
 import { getPurchaseCandidates, observationReducer } from '../lib/observation.js'
+import useUnsavedChanges from '../hooks/useUnsavedChanges.js'
 import './Observation.css'
 
 export default function ObservationPage({ initialState, onComplete, onDiscard }) {
   const [state, dispatch] = useReducer(observationReducer, initialState)
   const observation = state.observation
+  useUnsavedChanges(state.stage !== 'discarded')
 
   useEffect(() => {
     if (state.stage === 'discarded') onDiscard()
@@ -53,8 +55,9 @@ export default function ObservationPage({ initialState, onComplete, onDiscard })
         <div className="observation-toolbar"><p>ゾーンをタップして記録</p><button type="button" disabled={state.undoStack.length === 0} onClick={() => dispatch({ type: 'undo' })}><Icon name="undo" />1つ戻す</button></div>
         <ObservationMap elements={state.mapElements} routeSteps={observation.routeSteps} onZoneTap={(zoneId) => dispatch({ type: 'add-route', zoneId })} />
         <ObservationRoute steps={observation.routeSteps} />
-        <ObservationEvents currentStep={observation.routeSteps.at(-1)} onToggle={(event) => dispatch({ type: 'toggle-event', event })} onStartService={() => dispatch({ type: 'start-service', at: new Date().toISOString() })} onDiscard={discard} />
-        <ObservationZoneList elements={state.mapElements} onZoneTap={(zoneId) => dispatch({ type: 'add-route', zoneId })} />
+        <ObservationEvents currentStep={observation.routeSteps.at(-1)} onToggle={(event) => dispatch({ type: 'toggle-event', event })} onStartService={() => dispatch({ type: 'start-service', at: new Date().toISOString() })} />
+        <ObservationZoneList elements={state.mapElements} currentZoneId={observation.routeSteps.at(-1)?.zoneId} onZoneTap={(zoneId) => dispatch({ type: 'add-route', zoneId })} />
+        <div className="observation-discard-area"><button className="observation-discard-button" type="button" onClick={discard}>観察を破棄</button></div>
         <ObservationEndActions onPurchase={beginPurchase} onNoPurchase={noPurchase} />
       </main>
     </div>

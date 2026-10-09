@@ -1,6 +1,6 @@
 .app-shell.app-shell--observation {
   max-width: 520px;
-  padding-top: max(16px, env(safe-area-inset-top));
+  padding-top: max(12px, env(safe-area-inset-top));
   padding-bottom: calc(108px + env(safe-area-inset-bottom));
 }
 
@@ -18,7 +18,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 12px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -43,7 +43,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin: 4px 0;
+  margin: 0;
 }
 
 .observation-toolbar p {
@@ -70,7 +70,7 @@
 }
 
 .observation-map-frame {
-  width: min(100%, 240px);
+  width: min(100%, 240px, max(168px, calc((100svh - 336px) * 0.8)));
   margin: 0 auto;
   overflow: hidden;
   border: 1px solid #cddbd2;
@@ -103,15 +103,28 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 5px;
+  gap: 2px;
+  padding: 3px;
   border: 1px solid #aacfb9;
   border-radius: 4px;
   background: #e5f2e9;
   color: #28553c;
 }
 
+.observation-zone::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+  content: '';
+}
+
+.observation-zone:not(.observation-zone--sales) { gap: 1px; padding: 2px; }
+
 .observation-zone--entrance {
+  flex-direction: row;
   border-color: #a9c9df;
   background: #e5f0f9;
   color: #335a76;
@@ -136,8 +149,8 @@
 }
 
 .observation-zone .icon {
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
 }
 
 .observation-zone__name {
@@ -147,15 +160,15 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow-wrap: anywhere;
-  font-size: 12px;
+  font-size: clamp(10px, 3.4vw, 12px);
   font-weight: 650;
   line-height: 1.4;
 }
 
 .observation-zone__visits {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: -6px;
+  right: -6px;
   display: grid;
   place-items: center;
   min-width: 18px;
@@ -168,9 +181,8 @@
 }
 
 .observation-route {
-  min-height: 34px;
-  margin-top: 4px;
-  padding: 6px 0;
+  min-height: 28px;
+  padding: 3px 0;
   overflow-x: auto;
   color: var(--color-muted);
   font-size: 11px;
@@ -205,15 +217,20 @@
 }
 
 .observation-current-zone {
-  padding-bottom: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 4px;
 }
 
 .observation-current-zone > span {
+  flex-shrink: 0;
   color: var(--color-muted);
   font-size: 10px;
 }
 
 .observation-current-zone h2 {
+  min-width: 0;
   overflow-wrap: anywhere;
   font-size: 16px;
   font-weight: 700;
@@ -230,8 +247,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 52px;
-  padding: 12px 8px;
+  min-height: 48px;
+  padding: 10px 8px;
   border: 1px solid var(--color-border);
   border-radius: 11px;
   background: white;
@@ -286,6 +303,8 @@
   font-size: 12px;
 }
 
+.observation-discard-area { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--color-border); text-align: right; }
+
 .observation-zone-list {
   margin-top: 12px;
   color: var(--color-muted);
@@ -314,6 +333,8 @@
   overflow-wrap: anywhere;
   font-size: 13px;
 }
+
+.observation-zone-list button[aria-pressed="true"] { border-color: var(--color-primary); background: #dceee3; color: var(--color-primary); }
 
 .observation-end-bar {
   position: fixed;

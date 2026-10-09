@@ -13,7 +13,7 @@ export default function MapElementProperties({ element, minimumSize, onChange, o
     <section className="map-properties" aria-labelledby="properties-heading">
       <div className="section-heading">
         <h2 id="properties-heading">選択したものを編集</h2>
-        {element && <span className="sample-badge">{ELEMENT_TYPES[element.type].label}</span>}
+        {element && <span className="status-badge">{ELEMENT_TYPES[element.type].label}</span>}
       </div>
       {!element ? (
         <p className="map-properties__empty">マップまたは一覧から<br />編集したいものを選んでください。</p>

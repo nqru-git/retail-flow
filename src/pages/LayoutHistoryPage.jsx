@@ -23,7 +23,7 @@ export default function LayoutHistoryPage({ layouts, onBack }) {
             <li key={layout.id}>
               {index > 0 && <div className="layout-transition"><p className="layout-transition__arrow" aria-label={`${layoutLabel(layouts.history[index - 1])}から${layoutLabel(layout)}への変更`}>↓</p><LayoutChangeReason changeNote={layout.changeNote} /><p className="layout-transition__arrow" aria-hidden="true">↓</p></div>}
               <article className="layout-history-card" aria-label={`配置 ${layoutLabel(layout)}`}>
-                <div className="layout-history-card__heading"><h2>配置 <span>{layoutLabel(layout)}</span></h2>{index === layouts.history.length - 1 && <span className="sample-badge">現在の配置</span>}</div>
+                <div className="layout-history-card__heading"><h2>配置 <span>{layoutLabel(layout)}</span></h2>{index === layouts.history.length - 1 && <span className="status-badge">現在の配置</span>}</div>
                 <time dateTime={layout.createdAt}>{dateFormat.format(new Date(layout.createdAt))}（日本時間）</time>
                 <LayoutMapPreview elements={layout.layoutSnapshot} version={layoutLabel(layout)} />
                 {index === 0 && <p className="layout-initial-note">{layout.changeNote || '最初の保存済み配置'}</p>}

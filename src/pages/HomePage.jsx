@@ -21,6 +21,7 @@ export default function HomePage({ data, onAction, notice, onRetrySummary, layou
         <StoreHeader storeName={data.storeName} />
         <LayoutVersionCard version={data.layoutVersion} />
         <LayoutStatus loading={layoutState.loading} error={layoutState.error} localNotice={layoutState.localNotice} onRetry={layoutState.refresh} />
+        {notice && <p className="feature-notice" role="status" aria-atomic="true">{notice}</p>}
 
         <div className="home-actions">
           <ActionButton
@@ -36,10 +37,8 @@ export default function HomePage({ data, onAction, notice, onRetrySummary, layou
 
         <TodaySummary {...data.today} onRetry={onRetrySummary} />
         <HomeNavigation onAction={onAction} />
-        <p className="feature-notice" role="status" aria-atomic="true">{notice}</p>
       </main>
 
-      <footer className="app-footer">店舗名・初期配置はサンプルです。<br />保存前の編集・観察は、再読み込みするとリセットされます。</footer>
     </div>
   )
 }

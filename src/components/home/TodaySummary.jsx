@@ -2,10 +2,10 @@ import Icon from '../Icon.jsx'
 
 export default function TodaySummary({ observedCount, purchasedCount, status, error, onRetry }) {
   return (
-    <section className="today-summary" aria-labelledby="summary-heading">
+    <section className="today-summary" aria-labelledby="summary-heading" aria-busy={status === 'loading'}>
       <div className="section-heading">
         <h2 id="summary-heading">今日の記録</h2>
-        <span className="sample-badge">{status === 'ready' ? 'Supabase · 日本時間' : status === 'loading' ? '取得中…' : '未取得'}</span>
+        <span className="status-badge">{status === 'ready' ? '日本時間' : status === 'loading' ? '取得中…' : '未取得'}</span>
       </div>
       <dl className="summary-grid">
         <div className="summary-stat">

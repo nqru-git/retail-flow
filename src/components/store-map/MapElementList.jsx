@@ -4,7 +4,7 @@ import { ELEMENT_TYPES } from '../../lib/storeMap.js'
 export default function MapElementList({ elements, selectedId, onSelect }) {
   return (
     <section className="map-element-list" aria-labelledby="element-list-heading">
-      <div className="section-heading"><h2 id="element-list-heading">配置したもの</h2><span className="sample-badge">{elements.length}件</span></div>
+      <div className="section-heading"><h2 id="element-list-heading">配置したもの</h2><span className="status-badge">{elements.length}件</span></div>
       {elements.length === 0 ? <p className="map-element-list__empty">まだ配置されていません。</p> : (
         <div className="map-element-list__items">
           {elements.map((element) => (

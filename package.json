@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "test": "node --test src/lib/*.test.js",
+    "test:browser": "node scripts/field-browser-check.cjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -3,7 +3,7 @@ import HomePage from './pages/HomePage.jsx'
 import StoreMapEditorPage from './pages/StoreMapEditorPage.jsx'
 import ObservationPage from './pages/ObservationPage.jsx'
 import LayoutHistoryPage from './pages/LayoutHistoryPage.jsx'
-import { homePreview } from './data/homePreview.js'
+import { storeName } from './data/storeSettings.js'
 import { cloneMapElements } from './lib/storeMap.js'
 import { layoutLabel } from './lib/layoutHistory.js'
 import { createObservationState, observationDate } from './lib/observation.js'
@@ -20,7 +20,7 @@ function App() {
   const [activeObservation, setActiveObservation] = useState(null)
   const [summaryVersion, setSummaryVersion] = useState(0)
   const [todayDate, setTodayDate] = useState(() => observationDate(new Date().toISOString()))
-  const nextObservationNumber = useRef(homePreview.today.observedCount + 1)
+  const nextObservationNumber = useRef(1)
   const { summary, retry: retrySummary } = useTodaySummary(todayDate, summaryVersion)
   const layouts = useLayoutHistory()
   const refreshLayouts = layouts.refresh
@@ -102,7 +102,7 @@ function App() {
   if (screen === 'map' && editingLayout) {
     return (
       <StoreMapEditorPage
-        storeName={homePreview.storeName}
+        storeName={storeName}
         key={editingLayout.id}
         baseLayout={editingLayout}
         initialElements={editingLayout.layoutSnapshot}
@@ -114,7 +114,7 @@ function App() {
   }
 
   const homeData = {
-    ...homePreview,
+    storeName,
     layoutVersion: layoutLabel(layouts.currentLayout),
     today: summary,
   }

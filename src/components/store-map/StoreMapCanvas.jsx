@@ -141,7 +141,7 @@ export default function StoreMapCanvas({ elements, selectedId, onSelect, onChang
         })}
       </div>
       <p id="map-keyboard-help" className="map-sr-only">ゾーンを選んで矢印キーを押すと移動できます。</p>
-      <p id="map-resize-help" className="map-sr-only">右下をドラッグするか、矢印キーでサイズを変更できます。</p>
+      <p id="map-resize-help" className="map-sr-only">緑のハンドルをドラッグするか、矢印キーでサイズを変更できます。</p>
     </div>
   )
 }

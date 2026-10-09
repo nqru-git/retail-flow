@@ -17,6 +17,7 @@ export default function ObservationMap({ elements, routeSteps, onZoneTap }) {
                 className={`observation-zone observation-zone--${element.type}${currentId === element.id ? ' is-current' : ''}`}
                 style={{ left: `${element.x}%`, top: `${element.y}%`, width: `${element.width}%`, height: `${element.height}%` }}
                 aria-label={element.name}
+                aria-pressed={currentId === element.id}
                 data-zone-id={element.id}
                 onClick={() => onZoneTap(element.id)}
               >

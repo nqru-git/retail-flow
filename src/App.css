@@ -204,7 +204,7 @@
   font-weight: 700;
 }
 
-.sample-badge {
+.status-badge {
   padding: 3px 8px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -244,7 +244,8 @@
 
 .summary-stat dd {
   margin-top: 10px;
-  font-size: 42px;
+  font-size: clamp(28px, 9vw, 42px);
+  overflow-wrap: anywhere;
   font-weight: 650;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
@@ -326,21 +327,14 @@
 }
 
 .feature-notice {
-  min-height: 54px;
-  padding: 16px 0;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #bfd7c8;
+  border-radius: 12px;
+  background: #e9f4ed;
   color: var(--color-primary);
   font-size: 13px;
   line-height: 1.7;
-  text-align: center;
-}
-
-.app-footer {
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
-  color: var(--color-muted);
-  font-size: 11px;
-  line-height: 1.7;
-  text-align: center;
 }
 
 @media (hover: hover) {
