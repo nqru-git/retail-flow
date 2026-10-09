@@ -2,6 +2,13 @@
 -- 観察の詳細は公開せず、選択した2配置の集計値だけを返します。再実行可能です。
 begin;
 
+-- These historical migrations must never restore anonymous RPC access after Phase 8.
+do $$ begin
+  if to_regclass('public.store_members') is not null then
+    raise exception 'SECURITY_ALREADY_APPLIED: do not rerun legacy SQL; use security.sql';
+  end if;
+end $$;
+
 create or replace function public.get_layout_analysis(p_layout_ids text[])
 returns jsonb
 language plpgsql

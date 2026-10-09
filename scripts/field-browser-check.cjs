@@ -24,28 +24,83 @@ let failLayouts = false;
 let failAnalysis = false;
 let analysisDelay = 0;
 const requests = [];
+const authRequests = [];
+const storeA = '00000000-0000-4000-8000-000000000001';
+const storeB = '00000000-0000-4000-8000-000000000002';
+const userA = '10000000-0000-4000-8000-000000000001';
+const userB = '10000000-0000-4000-8000-000000000002';
+const userUnassigned = '10000000-0000-4000-8000-000000000003';
+const sessions = new Map();
+const refreshTokens = new Map();
+function authUser(id) {
+  return { id, aud: 'authenticated', role: 'authenticated', email: id === userA ? 'a@example.test' : id === userB ? 'b@example.test' : 'unassigned@example.test', app_metadata: { provider: 'email' }, user_metadata: {}, created_at: new Date().toISOString(), email_confirmed_at: new Date().toISOString() };
+}
+function newSession(id) {
+  const user = authUser(id);
+  const payload = { sub: id, role: 'authenticated', aud: 'authenticated', exp: Math.floor(Date.now()/1000) + 3600, iat: Math.floor(Date.now()/1000), jti: crypto.randomUUID() };
+  const session = { access_token: Buffer.from('{"alg":"HS256"}').toString('base64url') + '.' + Buffer.from(JSON.stringify(payload)).toString('base64url') + '.test-only-signature', refresh_token: crypto.randomUUID(), token_type: 'bearer', expires_in: 3600, user };
+  sessions.set(session.access_token, session);
+  refreshTokens.set(session.refresh_token, id);
+  return session;
+}
+async function queryAs(id, query, args = []) {
+  return db.transaction(async tx => {
+    await tx.exec('set local role authenticated');
+    await tx.query("select set_config('request.jwt.claim.sub', $1, true)", [id]);
+    return tx.query(query, args);
+  });
+}
 const server = http.createServer(async (req, res) => {
-  const pathname = new URL(req.url, 'http://localhost').pathname;
+  const requestUrl = new URL(req.url, 'http://localhost');
+  const pathname = requestUrl.pathname;
+  const token = req.headers.authorization?.replace(/^Bearer /, '');
+  const currentSession = sessions.get(token);
+  if (pathname.startsWith('/auth/v1/')) {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('X-Supabase-Api-Version', '2024-01-01');
+    authRequests.push({ pathname, method: req.method });
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    const args = body ? JSON.parse(body) : {};
+    if (pathname.endsWith('/token')) {
+      if (requestUrl.searchParams.get('grant_type') === 'refresh_token') {
+        const id = refreshTokens.get(args.refresh_token);
+        if (!id) return res.writeHead(400).end(JSON.stringify({ code: 'refresh_token_not_found', message: 'Test session expired' }));
+        return res.end(JSON.stringify(newSession(id)));
+      }
+      const id = args.email === 'a@example.test' ? userA : args.email === 'b@example.test' ? userB : args.email === 'unassigned@example.test' ? userUnassigned : null;
+      if (!id || args.password !== 'password-test-only') return res.writeHead(400).end(JSON.stringify({ code: 'invalid_credentials', message: 'Invalid login credentials' }));
+      return res.end(JSON.stringify(newSession(id)));
+    }
+    if (!currentSession) return res.writeHead(401).end(JSON.stringify({ code: 'bad_jwt', message: 'Test session expired' }));
+    if (pathname.endsWith('/user')) return res.end(JSON.stringify(currentSession.user));
+    if (pathname.endsWith('/logout')) { sessions.delete(token); refreshTokens.delete(currentSession.refresh_token); return res.writeHead(204).end(); }
+    return res.writeHead(404).end('{}');
+  }
   if (pathname.startsWith('/rest/v1/rpc/')) {
+    try {
     let body = '';
     for await (const chunk of req) body += chunk;
     const args = JSON.parse(body);
-    requests.push({ pathname, args, key: req.headers.apikey });
+    requests.push({ pathname, args, key: req.headers.apikey, userId: currentSession?.user.id ?? null });
     res.setHeader('Content-Type', 'application/json');
+    if (!currentSession) return res.writeHead(401).end(JSON.stringify({ code: 'PGRST301', message: 'LOGIN_REQUIRED' }));
+    const query = (sql, parameters) => queryAs(currentSession.user.id, sql, parameters);
+    if (pathname.endsWith('/get_current_store')) return res.end(JSON.stringify((await query('select * from public.get_current_store()')).rows));
     if (pathname.endsWith('/get_layout_analysis')) {
       const failed = failAnalysis;
       const delay = analysisDelay;
-      const { rows } = await db.query('select public.get_layout_analysis($1::text[]) as data', [args.p_layout_ids]);
+      const { rows } = await query('select public.get_layout_analysis($1::text[]) as data', [args.p_layout_ids]);
       await new Promise(resolve => setTimeout(resolve, delay));
       if (failed) return res.writeHead(503).end(JSON.stringify({ message: 'Test analysis failure' }));
       return res.end(JSON.stringify(rows[0].data));
     }
     if (pathname.endsWith('/get_layout_history')) {
       if (failLayouts) return res.writeHead(503).end(JSON.stringify({ message: 'Test layout failure' }));
-      return res.end(JSON.stringify((await db.query('select * from public.get_layout_history()')).rows));
+      return res.end(JSON.stringify((await query('select * from public.get_layout_history()')).rows));
     }
     if (pathname.endsWith('/initialize_layout')) {
-      const { rows } = await db.query('select * from public.initialize_layout($1, $2::jsonb)', [args.p_id, JSON.stringify(args.p_layout_snapshot)]);
+      const { rows } = await query('select * from public.initialize_layout($1, $2::jsonb)', [args.p_id, JSON.stringify(args.p_layout_snapshot)]);
       return res.end(JSON.stringify(rows));
     }
     if (pathname.endsWith('/save_layout_version')) {
@@ -53,7 +108,7 @@ const server = http.createServer(async (req, res) => {
       await new Promise(resolve => setTimeout(resolve, layoutSaveDelay));
       try {
         let rows;
-        if (mode !== 'error') rows = (await db.query('select * from public.save_layout_version($1, $2, $3::jsonb, $4)', [args.p_id, args.p_base_id, JSON.stringify(args.p_layout_snapshot), args.p_change_note])).rows;
+        if (mode !== 'error') rows = (await query('select * from public.save_layout_version($1, $2, $3::jsonb, $4)', [args.p_id, args.p_base_id, JSON.stringify(args.p_layout_snapshot), args.p_change_note])).rows;
         if (mode !== 'success') return res.writeHead(503).end(JSON.stringify({ message: 'Test layout response failure' }));
         return res.end(JSON.stringify(rows));
       } catch (error) { return res.writeHead(400).end(JSON.stringify({ code: error.code, message: error.message })); }
@@ -61,16 +116,19 @@ const server = http.createServer(async (req, res) => {
     if (pathname.endsWith('/save_observation')) {
       const mode = saveMode;
       await new Promise(resolve => setTimeout(resolve, saveDelay));
-      if (mode !== 'error') await db.query('select public.save_observation($1::jsonb)', [JSON.stringify(args.p_observation)]);
+      if (mode !== 'error') await query('select public.save_observation($1::jsonb)', [JSON.stringify(args.p_observation)]);
       if (mode !== 'success') return res.writeHead(503).end(JSON.stringify({ code: 'MOCK_NETWORK_FAILURE', message: 'Test failure' }));
       return res.end('null');
     }
     if (pathname.endsWith('/get_observation_summary')) {
       if (failSummary) return res.writeHead(503).end(JSON.stringify({ message: 'Test summary failure' }));
-      const { rows } = await db.query('select * from public.get_observation_summary($1::date)', [args.p_date]);
+      const { rows } = await query('select * from public.get_observation_summary($1::date)', [args.p_date]);
       return res.end(JSON.stringify(rows));
     }
     return res.writeHead(404).end('{}');
+    } catch (error) {
+      return res.writeHead(error.code === '42501' ? 403 : error.code === '28000' ? 401 : 400).end(JSON.stringify({ code: error.code, message: error.message }));
+    }
   }
   const currentRoot = pathname === '/unconfigured' ? unconfiguredRoot : root;
   const relative = pathname === '/' || pathname === '/unconfigured' ? '/index.html' : pathname;
@@ -87,7 +145,7 @@ const pause = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 async function buildApp(outDir, configured) {
   const result = spawn(process.execPath, [path.join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js'), 'build', '--outDir', outDir], {
     cwd: projectRoot, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, VITE_SUPABASE_URL: configured ? baseUrl : ' ', VITE_SUPABASE_ANON_KEY: configured ? 'public-browser-test-key' : ' ', VITE_STORE_NAME: 'テスト店' },
+    env: { ...process.env, VITE_SUPABASE_URL: configured ? baseUrl : ' ', VITE_SUPABASE_PUBLISHABLE_KEY: configured ? 'public-browser-test-key' : ' ', VITE_SUPABASE_ANON_KEY: ' ', VITE_STORE_NAME: 'テスト店' },
   });
   let output = '';
   result.stdout.on('data', data => { output += data; });
@@ -145,11 +203,20 @@ class CDP {
   let browser;
   let client;
   try {
-    await db.exec('create role anon; create role authenticated;');
+    await db.exec(`create role anon; create role authenticated;
+      create schema auth; create table auth.users(id uuid primary key);
+      create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid; $$;
+      grant usage on schema auth to anon, authenticated;
+      insert into auth.users values ('${userA}'), ('${userB}'), ('${userUnassigned}');`);
     await db.exec(fs.readFileSync(path.join(process.cwd(), 'supabase', 'schema.sql'), 'utf8'));
     await db.exec(fs.readFileSync(path.join(process.cwd(), 'supabase', 'layout-history.sql'), 'utf8'));
     await db.exec(fs.readFileSync(path.join(process.cwd(), 'supabase', 'analysis.sql'), 'utf8'));
     await db.query("insert into public.observations (id, observation_number, started_at, ended_at, layout_version, customer_service, result, purchased_items) values ('seed-today', 1, now(), now(), 'v2', '{}', 'purchase', '[{\"id\":\"other\"}]'), ('seed-earlier', 2, now() - interval '2 days', now() - interval '2 days', 'v2', '{}', 'purchase', '[{\"id\":\"other\"}]')");
+    await db.exec(fs.readFileSync(path.join(projectRoot, 'supabase/security.sql'), 'utf8'));
+    await db.query('update public.stores set name = $1 where id = $2', ['テスト店', storeA]);
+    await db.query('insert into public.stores(id,name) values ($1,$2)', [storeB,'別店舗']);
+    await db.query("insert into public.store_members(user_id,store_id,role) values ($1,$2,'owner'), ($3,$4,'staff')", [userA,storeA,userB,storeB]);
+    await db.query("select set_config('request.jwt.claim.sub', $1, false)", [userA]);
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
     baseUrl = 'http://127.0.0.1:' + server.address().port;
     await buildApp(root, true);
@@ -307,7 +374,27 @@ class CDP {
       await waitFor('document.querySelector("h1")?.textContent === "テスト店" && document.querySelector(".status-badge")?.textContent.includes("日本時間") && !document.querySelector(".action-button--primary").disabled');
     }
     const saves = () => requests.filter(request => request.pathname.endsWith('/save_observation'));
+    await waitFor('document.querySelector("#login-email") && !document.querySelector("#login-email").disabled');
+    check('未ログインでは店舗UIも店舗データ通信も利用しない', !await client.evaluate(() => Boolean(document.querySelector('.home-actions'))) && requests.length === 0);
+    await collectLayouts('login');
+    await screenshot('retail-flow-security-login.png');
+    await fill('email','a@example.test');
+    await fill('password','incorrect-test-only');
+    await clickButton('ログイン');
+    await waitFor('document.querySelector(".login-error")?.textContent.includes("パスワードを確認")');
+    check('ログイン失敗でも店舗データを要求しない',requests.length === 0);
+    async function loginAs(email) {
+      await waitFor('document.querySelector("#login-email") && !document.querySelector("#login-email").disabled');
+      await fill('email',email);
+      await fill('password','password-test-only');
+      await clickButton('ログイン');
+    }
+    await loginAs('a@example.test');
     await home();
+    check('ログイン後に検証済み店舗名と所属店舗の初期配置を表示', requests.some(request=>request.pathname.endsWith('/get_current_store')&&request.userId===userA));
+    await client.send('Page.reload');
+    await home();
+    check('再読み込み後もAuthセッションが維持される',authRequests.filter(request=>request.pathname.endsWith('/token')).length===2);
     await counts('1人,1人');
     check('仮データを加算せずDBの人数だけを表示', await client.evaluate(() => document.querySelector('.status-badge').textContent.includes('日本時間')));
     check('設定した店舗名を表示し、通常画面に開発用の仮表示を出さない', await client.evaluate(() => document.querySelector('h1').textContent==='テスト店'&&!document.querySelector('main').textContent.includes('Supabase')&&!document.querySelector('.app-footer')));
@@ -721,35 +808,86 @@ class CDP {
     await collectLayouts('analysis-empty-map');
     await clickButton('ホームへ');
     await home();
-    await client.send('Page.navigate', { url: baseUrl + '/unconfigured' });
-    await waitFor('document.querySelector(".summary-message")?.textContent.includes("Supabaseが設定されていません")');
-    check('未設定でもホームが起動し開発者向け表示', await client.evaluate(() => document.querySelector('h1').textContent === 'テスト店'));
-    await collectLayouts('unconfigured-home');
-    await clickButton('配置を変更');
-    check('未設定でも店舗マップ編集を利用可能', await client.evaluate(() => document.querySelectorAll('.map-element').length === 5));
-    await clickButton('新しい配置として保存');
-    check('未設定時も上書きせずローカルのv2を保存', await client.evaluate(() => document.querySelector('.version-badge').textContent) === 'v2');
-    await clickButton('配置を変更');
-    await clickSelector('[data-element-id="sample-bags"]');
-    await fill('product', 'ローカルの商品');
-    await fill('change-note', 'ローカルの変更理由');
-    await clickButton('新しい配置として保存');
-    check('ローカルでも新しい配置v3を追加', await client.evaluate(() => document.querySelector('.version-badge').textContent) === 'v3');
+    await clickButton('ログアウト');
+    await waitFor('document.querySelector("#login-email") && !document.querySelector("#login-email").disabled');
+    const afterLogoutRequests = requests.length;
+    await pause(200);
+    check('ログアウト後に店舗UI・店舗データ通信が残らない',!await client.evaluate(()=>Boolean(document.querySelector('.home-actions'))) && requests.length===afterLogoutRequests);
+    await client.send('Page.reload');
+    await waitFor('document.querySelector("#login-email") && !document.querySelector("#login-email").disabled');
+    check('ログアウト後の再読み込みでも店舗データを要求しない',requests.length===afterLogoutRequests);
+    const anonymousRead = await fetch(baseUrl+'/rest/v1/rpc/get_layout_history',{method:'POST',headers:{apikey:'public-browser-test-key','Content-Type':'application/json'},body:'{}'});
+    const anonymousSave = await fetch(baseUrl+'/rest/v1/rpc/save_observation',{method:'POST',headers:{apikey:'public-browser-test-key','Content-Type':'application/json'},body:JSON.stringify({p_observation:saves()[0].args.p_observation})});
+    check('未ログイン・ログアウト後の観察APIは取得も保存も拒否',anonymousRead.status===401&&anonymousSave.status===401);
+    await loginAs('unassigned@example.test');
+    await waitFor('document.querySelector(".login-error")?.textContent.includes("所属店舗が設定されていません")');
+    check('所属未登録は店舗画面を開けない',!await client.evaluate(()=>Boolean(document.querySelector('.home-actions'))));
+    await clickButton('ログアウト');
+    await loginAs('b@example.test');
+    await waitFor('document.querySelector("h1")?.textContent==="別店舗" && !document.querySelector(".action-button--primary").disabled && document.querySelector(".status-badge")?.textContent.includes("日本時間")');
+    await counts('0人,0人');
+    check('店舗BにAの人数・最新配置を引き継がず独立したv1を表示',await client.evaluate(()=>document.querySelector('.version-badge').textContent==='v1'));
     await clickButton('配置履歴');
-    check('未設定でも時系列の履歴と理由を表示', await client.evaluate(() => document.querySelectorAll('.layout-history-card').length === 3 && document.querySelector('main').textContent.includes('ローカルの変更理由')));
+    await waitFor('document.querySelectorAll(".layout-history-card").length===1');
+    check('店舗Bの履歴にAの9配置と変更理由が表示されない',await client.evaluate(()=>!document.querySelector('main').textContent.includes('新商品の露出を増やすため')));
     await clickButton('ホームへ');
-    await clickButton('分析を見る');
-    await waitFor('document.querySelector(".analysis-error")');
-    check('未設定でも分析画面を開き、架空の割合を表示しない', await client.evaluate(() => document.querySelector('h1').textContent === '分析' && document.querySelector('.analysis-error').textContent.includes('Supabaseが設定されていません') && !document.querySelector('.analysis-metric')));
-    await collectLayouts('unconfigured-analysis');
-    await clickButton('ホームへ');
-    const beforeUnconfigured = saves().length;
+    await waitFor('document.querySelector("h1")?.textContent==="別店舗"');
     await startObservation('001');
     await tapZone('sample-bags');
     await clickButton('非購入で終了');
+    await waitFor('document.querySelector("h1")?.textContent==="別店舗" && document.querySelector(".summary-stat dd")?.textContent==="1人"');
+    check('店舗Bの観察はBへ保存されAのデータに混入しない',saves().at(-1).args.p_observation.store_id===storeB && (await db.query('select store_id from public.observations where id=$1',[saves().at(-1).args.p_observation.id])).rows[0].store_id===storeB);
+    const bSession = Array.from(sessions.values()).find(session=>session.user.id===userB);
+    async function rpcAsB(name,args) {
+      return fetch(baseUrl+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:'public-browser-test-key',Authorization:'Bearer '+bSession.access_token,'Content-Type':'application/json'},body:JSON.stringify(args)});
+    }
+    check('ブラウザ用APIでも他店舗の観察保存を拒否',(await rpcAsB('save_observation',{p_observation:saves()[0].args.p_observation})).status===403);
+    check('ブラウザ用APIでも分析RPCから他店舗を取得できない',(await rpcAsB('get_layout_analysis',{p_layout_ids:['analysis-v7','analysis-v8']})).status===403);
+    await clickButton('ログアウト');
+    await loginAs('a@example.test');
+    await home();
+    await clickButton('配置を変更');
+    await clickButton('入口を追加');
+    await fill('change-note','セッション切れでも編集を保持');
+    layoutSaveMode='error';
+    await clickButton('新しい配置として保存');
+    await waitFor('document.querySelector(".editor-save-error")');
+    const interruptedLayout = requests.filter(request=>request.pathname.endsWith('/save_layout_version')).at(-1).args;
+    // Simulate Auth's session-expiry notification, without touching the real Supabase service.
+    async function expireBrowserSession() {
+      for (const [token,session] of sessions) if (session.user.id===userA) { sessions.delete(token); refreshTokens.delete(session.refresh_token); }
+      await client.evaluate(()=>{const key=Object.keys(localStorage).find(key=>key.endsWith('-auth-token')); localStorage.removeItem(key); const channel=new BroadcastChannel(key); channel.postMessage({event:'SIGNED_OUT',session:null}); setTimeout(()=>channel.close(),100);});
+      await waitFor('document.querySelector("#login-email") && !document.querySelector("#login-email").disabled');
+    }
+    await expireBrowserSession();
+    await loginAs('a@example.test');
+    await waitFor('document.querySelector("#change-note")?.value==="セッション切れでも編集を保持"');
+    check('同じアカウントの再ログインで配置の編集・変更理由を復元',await client.evaluate(()=>document.querySelectorAll('.map-element').length===1));
+    layoutSaveMode='success';
+    await clickButton('新しい配置として保存');
+    await home();
+    check('再ログイン後の配置再試行でも同じ保存IDを使う',requests.filter(request=>request.pathname.endsWith('/save_layout_version')).at(-1).args.p_id===interruptedLayout.p_id);
+    await startObservation('001');
+    const entranceId = await client.evaluate(()=>document.querySelector('[data-zone-id]').dataset.zoneId);
+    await tapZone(entranceId);
+    saveMode='error';
+    await clickButton('非購入で終了');
     await waitFor('document.querySelector(".observation-save-status__retry")');
-    check('未設定の保存失敗でもデータを保持', await client.evaluate(() => document.querySelector('[role="alert"]').textContent.includes('Supabaseが設定されていません') && document.querySelector('main').textContent.includes('ルート 1か所')));
-    check('未設定の場合は保存APIを送信しない', saves().length === beforeUnconfigured);
+    const interruptedObservation = saves().at(-1).args.p_observation;
+    await expireBrowserSession();
+    await loginAs('a@example.test');
+    await waitFor('document.querySelector(".observation-save-status__retry")');
+    check('同じアカウントの再ログインで観察データ・ルートを復元',await client.evaluate(()=>document.querySelector('main').textContent.includes('ルート 1か所'))&&JSON.stringify(saves().at(-1).args.p_observation)===JSON.stringify(interruptedObservation));
+    saveMode='success';
+    await clickButton('保存を再試行');
+    await home();
+    check('再ログイン後の観察再送でも記録を1件だけ保存',(await db.query('select count(*) as count from public.observations where id=$1',[interruptedObservation.id])).rows[0].count===1);
+    await client.send('Page.navigate', { url: baseUrl + '/unconfigured' });
+    await waitFor('document.querySelector(".login-error")?.textContent.includes("Supabaseが設定されていません")');
+    const beforeUnconfigured = requests.length;
+    check('未設定でもクラッシュせず案内を表示し店舗UIを開けない',await client.evaluate(()=>document.querySelector('h1').textContent==='ログイン'&&document.querySelector('.login-button').matches(':disabled')&&!document.querySelector('.home-actions')));
+    await collectLayouts('unconfigured-login');
+    check('未設定時は店舗データAPIを送信しない',requests.length===beforeUnconfigured);
     check('公開テストキーだけをAPIへ渡す', requests.every(request => request.key === 'public-browser-test-key'));
     check('ブラウザの実行エラーなし', client.errors.length === 0);
     const report={passedChecks:checks.length,failedChecks:checks.filter(check=>!check.passed),inputMeasurements,errors:client.errors,artifacts};
@@ -757,6 +895,14 @@ class CDP {
     console.log(JSON.stringify(report, null, 2));
   } catch (error) {
     console.error(error.stack);
+    console.error('Browser artifacts: '+artifacts);
+    if (client) {
+      try {
+        const screenshot = await client.send('Page.captureScreenshot', { format: 'png' });
+        fs.writeFileSync(path.join(artifacts,'failure.png'),Buffer.from(screenshot.data,'base64'));
+        fs.writeFileSync(path.join(artifacts,'failure.txt'),await client.evaluate(()=>document.body.innerText));
+      } catch {}
+    }
     process.exitCode = 1;
   } finally {
     if (client) {

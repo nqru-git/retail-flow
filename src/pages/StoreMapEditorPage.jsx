@@ -11,17 +11,17 @@ import { describeLayoutError } from '../lib/layoutRepository.js'
 import useUnsavedChanges from '../hooks/useUnsavedChanges.js'
 import './StoreMapEditor.css'
 
-export default function StoreMapEditorPage({ storeName, baseLayout, initialElements, isLocal, onSave, onBack }) {
-  const [elements, setElements] = useState(() => cloneMapElements(initialElements))
-  const [selectedId, setSelectedId] = useState(null)
+export default function StoreMapEditorPage({ storeName, baseLayout, initialElements, isLocal, onSave, onBack, draft, onDraftChange }) {
+  const [elements, setElements] = useState(() => cloneMapElements(draft?.elements ?? initialElements))
+  const [selectedId, setSelectedId] = useState(draft?.selectedId ?? null)
   const [notice, setNotice] = useState('')
   const [nameErrorId, setNameErrorId] = useState(null)
-  const [changeNote, setChangeNote] = useState('')
+  const [changeNote, setChangeNote] = useState(draft?.changeNote ?? '')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [minimumSizes, setMinimumSizes] = useState({})
   const inFlight = useRef(false)
-  const saveRequest = useRef(null)
+  const saveRequest = useRef(draft?.saveRequest ?? null)
   const headingRef = useRef(null)
   const boardRef = useRef(null)
   const selectedElement = elements.find((element) => element.id === selectedId)
@@ -29,6 +29,7 @@ export default function StoreMapEditorPage({ storeName, baseLayout, initialEleme
   useUnsavedChanges(hasChanges || saving)
 
   useEffect(() => { headingRef.current?.focus() }, [])
+  useEffect(() => { onDraftChange?.({ elements, selectedId, changeNote, saveRequest: saveRequest.current }) }, [elements, selectedId, changeNote, saving, onDraftChange])
 
   function addElement(type) {
     const element = createMapElement(type, elements)

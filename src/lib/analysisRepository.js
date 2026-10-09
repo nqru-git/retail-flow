@@ -1,4 +1,5 @@
 import { supabase, supabaseConfigurationError } from './supabase.js'
+import { describeSecurityError } from './securityErrors.js'
 
 const countKeys = {
   observedCount: 'observed_count', purchasedCount: 'purchased_count', serviceCount: 'service_count',
@@ -47,6 +48,7 @@ export function parseAnalysis(data, layoutIds) {
 }
 
 export function describeAnalysisError(error) {
+  if (describeSecurityError(error)) return describeSecurityError(error)
   if (!supabase && error?.message === 'SUPABASE_NOT_CONFIGURED') return supabaseConfigurationError
   if (['PGRST202', '42P01', '42883'].includes(error?.code)) return '分析用SQLが未設定です。SupabaseのSQL Editorで supabase/analysis.sql を実行してください。'
   if (error?.message === 'INVALID_ANALYSIS_DATA') return '分析データの形式を確認できませんでした。SQLを更新して再取得してください。'

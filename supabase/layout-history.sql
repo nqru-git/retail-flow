@@ -2,6 +2,13 @@
 -- Existing observations are preserved; their new layout FK remains NULL.
 begin;
 
+-- These historical migrations must never restore anonymous RPC access after Phase 8.
+do $$ begin
+  if to_regclass('public.store_members') is not null then
+    raise exception 'SECURITY_ALREADY_APPLIED: do not rerun legacy SQL; use security.sql';
+  end if;
+end $$;
+
 create table if not exists public.layout_versions (
   id text primary key check (length(id) between 1 and 200),
   version_number integer not null unique check (version_number > 0),

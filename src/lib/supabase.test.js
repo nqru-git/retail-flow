@@ -27,10 +27,17 @@ test('service_role JWTとsecret keyではブラウザクライアントを作ら
   }
 })
 
-test('公開キーの接続設定を受け取り、認証機能を追加しない', () => {
+test('公開キーの接続設定を受け取り、セッション保存と自動更新を有効にする', () => {
   const result = initializeSupabase({ VITE_SUPABASE_URL: ' http://localhost:54321 ', VITE_SUPABASE_ANON_KEY: ' public-test-key ' })
   assert.ok(result.client)
   assert.equal(result.error, '')
-  assert.equal(result.client.auth.persistSession, false)
-  assert.equal(result.client.auth.autoRefreshToken, false)
+  assert.equal(result.client.auth.persistSession, true)
+  assert.equal(result.client.auth.autoRefreshToken, true)
+})
+
+test('Publishable keyを優先し、旧anon設定も利用できる', () => {
+  const result = initializeSupabase({ VITE_SUPABASE_URL: 'http://localhost:54321', VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test-only', VITE_SUPABASE_ANON_KEY: 'sb_secret_test-only' })
+  assert.ok(result.client)
+  assert.equal(result.error, '')
+  assert.equal(result.client.supabaseKey, 'sb_publishable_test-only')
 })

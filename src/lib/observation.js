@@ -11,7 +11,7 @@ export function observationDate(timestamp) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(timestamp))
 }
 
-export function createObservationState({ number, layoutVersion, layoutVersionId = null, elements, startedAt, id }) {
+export function createObservationState({ number, layoutVersion, layoutVersionId = null, storeId, elements, startedAt, id }) {
   const mapElements = cloneMapElements(elements)
   return {
     stage: 'observing',
@@ -21,6 +21,7 @@ export function createObservationState({ number, layoutVersion, layoutVersionId 
     observation: {
       id: id ?? globalThis.crypto?.randomUUID?.() ?? `observation-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       number,
+      ...(storeId ? { storeId } : {}),
       startedAt,
       endedAt: null,
       date: observationDate(startedAt),

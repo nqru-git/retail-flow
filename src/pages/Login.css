@@ -1,0 +1,15 @@
+.login-shell { min-height: 100svh; display: grid; align-items: center; }
+.login-page { width: 100%; max-width: 420px; margin: 0 auto; padding: 24px 0; }
+.login-page h1 { margin: 8px 0 12px; font-size: 28px; }
+.login-page > p { overflow-wrap: anywhere; }
+.login-page form { margin-top: 24px; }
+.login-page fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 10px; }
+.login-page input { width: 100%; min-width: 0; min-height: 52px; padding: 12px; font: inherit; font-size: 16px; border: 1px solid var(--color-border); border-radius: 10px; background: white; }
+.login-page label:not(:first-child) { margin-top: 10px; }
+.login-page button { min-height: 48px; padding: 12px 16px; font: inherit; font-weight: 700; border: 1px solid var(--color-border); border-radius: 10px; cursor: pointer; }
+.login-page .login-button { margin-top: 12px; min-height: 56px; background: var(--color-primary); color: white; }
+.login-page button:disabled { opacity: .55; cursor: wait; }
+.login-error { color: #9a2828; background: #fff0ef; padding: 14px; border-radius: 10px; }
+.login-recovery { display: grid; gap: 10px; margin-top: 16px; }
+.account-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+.account-actions button { min-height: 44px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 8px; background: white; font: inherit; font-size: 13px; cursor: pointer; }

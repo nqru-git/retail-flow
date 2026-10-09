@@ -6,7 +6,7 @@ import StoreHeader from '../components/home/StoreHeader.jsx'
 import TodaySummary from '../components/home/TodaySummary.jsx'
 import LayoutStatus from '../components/layout-history/LayoutStatus.jsx'
 
-export default function HomePage({ data, onAction, notice, onRetrySummary, layoutState }) {
+export default function HomePage({ data, onAction, notice, onRetrySummary, layoutState, onLogout, loggingOut }) {
   return (
     <div className="app-shell">
       <div className="brand-bar">
@@ -16,6 +16,7 @@ export default function HomePage({ data, onAction, notice, onRetrySummary, layou
         </div>
         <span className="brand-bar__caption">店舗観察ノート</span>
       </div>
+      <div className="account-actions"><button type="button" disabled={loggingOut} onClick={onLogout}>{loggingOut ? 'ログアウト中…' : 'ログアウト'}</button></div>
 
       <main>
         <StoreHeader storeName={data.storeName} />

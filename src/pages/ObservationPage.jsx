@@ -12,10 +12,11 @@ import { getPurchaseCandidates, observationReducer } from '../lib/observation.js
 import useUnsavedChanges from '../hooks/useUnsavedChanges.js'
 import './Observation.css'
 
-export default function ObservationPage({ initialState, onComplete, onDiscard }) {
+export default function ObservationPage({ initialState, onComplete, onDiscard, onDraftChange }) {
   const [state, dispatch] = useReducer(observationReducer, initialState)
   const observation = state.observation
   useUnsavedChanges(state.stage !== 'discarded')
+  useEffect(() => { onDraftChange?.(state) }, [state, onDraftChange])
 
   useEffect(() => {
     if (state.stage === 'discarded') onDiscard()

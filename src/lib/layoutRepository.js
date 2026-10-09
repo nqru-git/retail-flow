@@ -1,6 +1,7 @@
 import { supabase, supabaseConfigurationError } from './supabase.js'
 import { cloneMapElements } from './storeMap.js'
 import { validateLayoutSnapshot } from './layoutHistory.js'
+import { describeSecurityError } from './securityErrors.js'
 
 export function fromLayoutRow(row) {
   if (!row?.id || !Number.isSafeInteger(row.version_number) || row.version_number < 1 || !row.created_at || !Number.isFinite(Date.parse(row.created_at)) || typeof row.change_note !== 'string' || !validateLayoutSnapshot(row.layout_snapshot)) throw new Error('配置データが不正です。')
@@ -8,10 +9,10 @@ export function fromLayoutRow(row) {
 }
 
 export function describeLayoutError(error) {
+  if (describeSecurityError(error)) return describeSecurityError(error)
   if (error?.code === 'LAYOUT_CONFLICT' || error?.message === 'LAYOUT_CONFLICT') return '別の保存で現在の配置が更新されました。編集内容は保持しています。ホームで最新の配置を取得してから、編集し直してください。'
   if (error?.code === 'SUPABASE_NOT_CONFIGURED') return error.message
   if (['PGRST202', '42P01', '42883', 'PGRST204'].includes(error?.code)) return '配置履歴の保存先が未設定です。Supabaseで supabase/layout-history.sql を実行してください。'
-  if (error?.code === '42501') return '配置履歴のアクセス権限を確認してください。'
   return '配置履歴を取得・保存できませんでした。接続や設定を確認して再試行してください。'
 }
 
