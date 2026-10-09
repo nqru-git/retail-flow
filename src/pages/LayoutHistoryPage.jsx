@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import Icon from '../components/Icon.jsx'
 import LayoutMapPreview from '../components/layout-history/LayoutMapPreview.jsx'
-import LayoutChanges from '../components/layout-history/LayoutChanges.jsx'
+import LayoutChangeReason from '../components/layout-history/LayoutChanges.jsx'
 import LayoutStatus from '../components/layout-history/LayoutStatus.jsx'
 import { layoutLabel } from '../lib/layoutHistory.js'
 import './LayoutHistory.css'
@@ -21,7 +21,7 @@ export default function LayoutHistoryPage({ layouts, onBack }) {
         <ol className="layout-timeline">
           {layouts.history.map((layout, index) => (
             <li key={layout.id}>
-              {index > 0 && <div className="layout-transition"><p className="layout-transition__arrow" aria-label={`${layoutLabel(layouts.history[index - 1])}から${layoutLabel(layout)}への変更`}>↓</p><LayoutChanges before={layouts.history[index - 1].layoutSnapshot} after={layout.layoutSnapshot} changeNote={layout.changeNote} /><p className="layout-transition__arrow" aria-hidden="true">↓</p></div>}
+              {index > 0 && <div className="layout-transition"><p className="layout-transition__arrow" aria-label={`${layoutLabel(layouts.history[index - 1])}から${layoutLabel(layout)}への変更`}>↓</p><LayoutChangeReason changeNote={layout.changeNote} /><p className="layout-transition__arrow" aria-hidden="true">↓</p></div>}
               <article className="layout-history-card" aria-label={`配置 ${layoutLabel(layout)}`}>
                 <div className="layout-history-card__heading"><h2>配置 <span>{layoutLabel(layout)}</span></h2>{index === layouts.history.length - 1 && <span className="sample-badge">現在の配置</span>}</div>
                 <time dateTime={layout.createdAt}>{dateFormat.format(new Date(layout.createdAt))}（日本時間）</time>

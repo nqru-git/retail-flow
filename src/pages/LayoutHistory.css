@@ -243,6 +243,12 @@
   overflow-wrap: anywhere;
 }
 
+.layout-changes > .layout-change-reason:only-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .layout-zone-details {
   margin-top: 12px;
   font-size: 12px;

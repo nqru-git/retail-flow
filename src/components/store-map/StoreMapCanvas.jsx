@@ -1,10 +1,33 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import Icon from '../Icon.jsx'
 import { ELEMENT_TYPES, moveMapElement, resizeMapElement } from '../../lib/storeMap.js'
+import { fitMapElementSize, getMapElementMinimumSize } from '../../lib/mapElementSizing.js'
 
-export default function StoreMapCanvas({ elements, selectedId, onSelect, onChange }) {
-  const boardRef = useRef(null)
+export default function StoreMapCanvas({ elements, selectedId, onSelect, onChange, boardRef, minimumSizes, onMinimumSizesChange }) {
   const gestureRef = useRef(null)
+
+  useEffect(() => {
+    let active = true
+    let frame
+    function scheduleMeasurement() {
+      if (!active) return
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        const minimumSizes = {}
+        for (const element of elements) {
+          const fitted = fitMapElementSize(boardRef.current, element, element, { allowReposition: true })
+          if (['x', 'y', 'width', 'height'].some(key => fitted[key] !== element[key])) onChange(element.id, fitted)
+          minimumSizes[element.id] = getMapElementMinimumSize(boardRef.current, fitted)
+        }
+        onMinimumSizesChange(minimumSizes)
+      })
+    }
+    const observer = new ResizeObserver(scheduleMeasurement)
+    observer.observe(boardRef.current)
+    scheduleMeasurement()
+    document.fonts?.ready.then(scheduleMeasurement)
+    return () => { active = false; cancelAnimationFrame(frame); observer.disconnect() }
+  }, [elements, boardRef, onChange, onMinimumSizesChange])
 
   function startGesture(event, element, mode) {
     if (!event.isPrimary || event.button !== 0) return
@@ -30,7 +53,7 @@ export default function StoreMapCanvas({ elements, selectedId, onSelect, onChang
     const deltaY = (event.clientY - gesture.startY) / gesture.boardHeight * 100
     const updated = gesture.mode === 'move'
       ? moveMapElement(gesture.element, deltaX, deltaY)
-      : resizeMapElement(gesture.element, deltaX, deltaY)
+      : fitMapElementSize(boardRef.current, gesture.element, resizeMapElement(gesture.element, deltaX, deltaY), { axis: deltaX === 0 ? 'height' : deltaY === 0 ? 'width' : 'both' })
     onChange(gesture.element.id, updated)
   }
 
@@ -53,7 +76,7 @@ export default function StoreMapCanvas({ elements, selectedId, onSelect, onChang
     onSelect(element.id)
     onChange(element.id, mode === 'move'
       ? moveMapElement(element, ...delta)
-      : resizeMapElement(element, ...delta))
+      : fitMapElementSize(boardRef.current, element, resizeMapElement(element, ...delta), { axis: delta[0] === 0 ? 'height' : 'width' }))
   }
 
   function gestureEvents(element, mode) {
@@ -105,6 +128,7 @@ export default function StoreMapCanvas({ elements, selectedId, onSelect, onChang
                 <button
                   type="button"
                   className="map-element__resize"
+                  style={minimumSizes[element.id]?.resizeHandleStyle}
                   aria-label={`「${name}」のサイズを変更`}
                   aria-describedby="map-resize-help"
                   {...gestureEvents(element, 'resize')}

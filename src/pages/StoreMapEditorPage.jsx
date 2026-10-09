@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon from '../components/Icon.jsx'
 import StoreMapCanvas from '../components/store-map/StoreMapCanvas.jsx'
 import MapElementPalette from '../components/store-map/MapElementPalette.jsx'
 import MapElementProperties from '../components/store-map/MapElementProperties.jsx'
 import MapElementList from '../components/store-map/MapElementList.jsx'
-import { cloneMapElements, createMapElement, resizeMapElement } from '../lib/storeMap.js'
+import { cloneMapElements, createMapElement } from '../lib/storeMap.js'
+import { fitMapElementSize } from '../lib/mapElementSizing.js'
 import { createLayoutId, layoutLabel } from '../lib/layoutHistory.js'
 import { describeLayoutError } from '../lib/layoutRepository.js'
 import './StoreMapEditor.css'
@@ -17,9 +18,11 @@ export default function StoreMapEditorPage({ storeName, baseLayout, initialEleme
   const [changeNote, setChangeNote] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [minimumSizes, setMinimumSizes] = useState({})
   const inFlight = useRef(false)
   const saveRequest = useRef(null)
   const headingRef = useRef(null)
+  const boardRef = useRef(null)
   const selectedElement = elements.find((element) => element.id === selectedId)
   const hasChanges = JSON.stringify(elements) !== JSON.stringify(initialElements) || changeNote.length > 0
 
@@ -33,20 +36,17 @@ export default function StoreMapEditorPage({ storeName, baseLayout, initialEleme
     setNotice(`${element.name}を追加しました。`)
   }
 
-  function updateElement(id, changes) {
+  const updateElement = useCallback((id, changes) => {
     setElements((current) => current.map((element) => element.id === id ? { ...element, ...changes } : element))
     setNameErrorId(null)
     setNotice('')
-  }
+  }, [])
 
   function updateProperties(changes) {
     if (!selectedElement) return
-    const resized = resizeMapElement(
-      selectedElement,
-      changes.width === undefined ? 0 : changes.width - selectedElement.width,
-      changes.height === undefined ? 0 : changes.height - selectedElement.height,
-    )
-    updateElement(selectedId, { ...changes, width: resized.width, height: resized.height })
+    const updated = { ...selectedElement, ...changes }
+    const resized = fitMapElementSize(boardRef.current, updated, updated, { axis: changes.height !== undefined ? 'height' : changes.width !== undefined ? 'width' : 'both', allowReposition: changes.width === undefined && changes.height === undefined })
+    updateElement(selectedId, resized)
   }
 
   function deleteElement() {
@@ -98,13 +98,13 @@ export default function StoreMapEditorPage({ storeName, baseLayout, initialEleme
           <div>
             <section aria-labelledby="map-heading">
               <div className="section-heading"><h2 id="map-heading">店舗マップ</h2><span className="sample-badge">{hasChanges ? '未保存の変更あり' : '現在の配置'}</span></div>
-              <StoreMapCanvas elements={elements} selectedId={selectedId} onSelect={setSelectedId} onChange={updateElement} />
+              <StoreMapCanvas elements={elements} selectedId={selectedId} onSelect={setSelectedId} onChange={updateElement} boardRef={boardRef} minimumSizes={minimumSizes} onMinimumSizesChange={setMinimumSizes} />
               <p className="map-caption">空白は通路として扱います。</p>
             </section>
             <MapElementPalette onAdd={addElement} />
           </div>
           <div className="editor-sidebar">
-            <MapElementProperties element={selectedElement} onChange={updateProperties} onDelete={deleteElement} showNameError={Boolean(selectedElement && nameErrorId === selectedId)} />
+            <MapElementProperties element={selectedElement} minimumSize={minimumSizes[selectedId]} onChange={updateProperties} onDelete={deleteElement} showNameError={Boolean(selectedElement && nameErrorId === selectedId)} />
             <MapElementList elements={elements} selectedId={selectedId} onSelect={setSelectedId} />
           </div>
         </div>
@@ -112,7 +112,7 @@ export default function StoreMapEditorPage({ storeName, baseLayout, initialEleme
           <label className="map-field" htmlFor="change-note">変更理由 <span className="map-field__required">任意</span>
             <textarea id="change-note" name="change-note" value={changeNote} onChange={(event) => setChangeNote(event.target.value)} maxLength={1200} rows={4} placeholder="例：新作バッグを入口横に移動。新商品の露出を増やし、立ち寄りが変わるか確認するため。" />
           </label>
-          <p>変更内容は自動比較し、この理由とは分けて履歴に表示します。</p>
+          <p>入力した変更理由を、新しい配置バージョンと一緒に履歴へ保存します。</p>
         </section>
         </fieldset>
         {saveError && <p className="editor-save-error" role="alert">{saveError}<br />編集内容と変更理由はこの画面に保持されています。</p>}

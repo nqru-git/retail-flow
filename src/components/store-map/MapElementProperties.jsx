@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import Icon from '../Icon.jsx'
-import { ELEMENT_TYPES, MIN_ELEMENT_HEIGHT, MIN_ELEMENT_WIDTH } from '../../lib/storeMap.js'
+import { ELEMENT_TYPES } from '../../lib/storeMap.js'
 
-export default function MapElementProperties({ element, onChange, onDelete, showNameError }) {
+export default function MapElementProperties({ element, minimumSize, onChange, onDelete, showNameError }) {
   const nameRef = useRef(null)
 
   useEffect(() => {
@@ -52,9 +52,10 @@ export default function MapElementProperties({ element, onChange, onDelete, show
           </label>
           <fieldset className="map-size-controls">
             <legend>サイズを調整</legend>
-            <label><span>幅</span><input type="range" aria-label="幅" min={MIN_ELEMENT_WIDTH} max={Math.floor(100 - element.x)} step="1" value={element.width} onChange={(event) => onChange({ width: Number(event.target.value) })} /></label>
-            <label><span>高さ</span><input type="range" aria-label="高さ" min={MIN_ELEMENT_HEIGHT} max={Math.floor(100 - element.y)} step="1" value={element.height} onChange={(event) => onChange({ height: Number(event.target.value) })} /></label>
+            <label><span>幅</span><input type="range" aria-label="幅" min={minimumSize?.width ?? element.width} max={100 - element.x} step="0.1" value={element.width} disabled={!minimumSize} onChange={(event) => onChange({ width: Number(event.target.value) })} /></label>
+            <label><span>高さ</span><input type="range" aria-label="高さ" min={minimumSize?.height ?? element.height} max={100 - element.y} step="0.1" value={element.height} disabled={!minimumSize} onChange={(event) => onChange({ height: Number(event.target.value) })} /></label>
           </fieldset>
+          <p className="map-size-help">文字・アイコンが収まるサイズまで縮小できます。長い名前や商品名は折り返して表示します。</p>
           <button className="map-delete-button" type="button" onClick={onDelete}><Icon name="trash" />選択したものを削除</button>
         </div>
       )}

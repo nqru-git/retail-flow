@@ -5,8 +5,9 @@ export const ELEMENT_TYPES = {
   fitting: { label: '試着室', icon: 'fitting' },
 }
 
-export const MIN_ELEMENT_WIDTH = 20
-export const MIN_ELEMENT_HEIGHT = 16
+// DOMを使わない幾何計算の下限。編集UIでは内容を実測した下限を渡す。
+export const MIN_ELEMENT_WIDTH = 0.1
+export const MIN_ELEMENT_HEIGHT = 0.1
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const round = (value) => Math.round(value * 10) / 10
@@ -23,11 +24,11 @@ export function moveMapElement(element, deltaX, deltaY) {
   }
 }
 
-export function resizeMapElement(element, deltaWidth, deltaHeight) {
+export function resizeMapElement(element, deltaWidth, deltaHeight, minimum = {}) {
   return {
     ...element,
-    width: round(clamp(element.width + deltaWidth, MIN_ELEMENT_WIDTH, 100 - element.x)),
-    height: round(clamp(element.height + deltaHeight, MIN_ELEMENT_HEIGHT, 100 - element.y)),
+    width: round(clamp(element.width + deltaWidth, minimum.width ?? MIN_ELEMENT_WIDTH, 100 - element.x)),
+    height: round(clamp(element.height + deltaHeight, minimum.height ?? MIN_ELEMENT_HEIGHT, 100 - element.y)),
   }
 }
 

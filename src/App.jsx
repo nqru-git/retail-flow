@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import HomePage from './pages/HomePage.jsx'
 import StoreMapEditorPage from './pages/StoreMapEditorPage.jsx'
 import ObservationPage from './pages/ObservationPage.jsx'
@@ -11,9 +11,7 @@ import useTodaySummary from './hooks/useTodaySummary.js'
 import useLayoutHistory from './hooks/useLayoutHistory.js'
 import './App.css'
 
-const upcomingFeatureMessages = {
-  analysis: '分析機能は準備中です。',
-}
+const AnalysisPage = lazy(() => import('./pages/AnalysisPage.jsx'))
 
 function App() {
   const [notice, setNotice] = useState('')
@@ -33,7 +31,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    document.title = { map: 'Retail Flow | 店舗マップ編集', observation: 'Retail Flow | 顧客観察', history: 'Retail Flow | 配置履歴', home: 'Retail Flow | ホーム' }[screen]
+    document.title = { map: 'Retail Flow | 店舗マップ編集', observation: 'Retail Flow | 顧客観察', history: 'Retail Flow | 配置履歴', analysis: 'Retail Flow | 分析', home: 'Retail Flow | ホーム' }[screen]
     window.scrollTo(0, 0)
   }, [screen])
 
@@ -52,13 +50,12 @@ function App() {
       setScreen('map')
       return
     }
-    if (action === 'history') {
+    if (action === 'history' || action === 'analysis') {
       layouts.refresh()
       setNotice('')
-      setScreen('history')
+      setScreen(action)
       return
     }
-    setNotice(upcomingFeatureMessages[action])
   }
 
   async function handleSave(request) {
@@ -96,6 +93,10 @@ function App() {
 
   if (screen === 'history') {
     return <LayoutHistoryPage layouts={layouts} onBack={goHome} />
+  }
+
+  if (screen === 'analysis') {
+    return <Suspense fallback={<div className="app-shell"><p role="status">分析画面を読み込んでいます…</p></div>}><AnalysisPage layouts={layouts} onBack={goHome} /></Suspense>
   }
 
   if (screen === 'map' && editingLayout) {

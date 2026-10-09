@@ -30,10 +30,20 @@ test('小さい指の移動を割合で反映し、元の要素を変更しな�
   assert.deepEqual([element.x, element.y], [30, 40])
 })
 
-test('縮小しすぎても操作できる最小サイズを保つ', () => {
+test('幾何計算だけでも縮小でサイズを0にしない', () => {
   const resized = resizeMapElement(element, -1000, -1000)
   assert.deepEqual([resized.width, resized.height], [MIN_ELEMENT_WIDTH, MIN_ELEMENT_HEIGHT])
   assert.deepEqual([resized.x, resized.y], [element.x, element.y])
+})
+
+test('内容の実測値を縮小の下限にし、大きな固定下限を使わない', () => {
+  const shortLabel = { width: 12.5, height: 14.9 }
+  const longLabel = { width: 32.8, height: 24.5 }
+  const short = resizeMapElement(element, -1000, -1000, shortLabel)
+  const long = resizeMapElement(element, -1000, -1000, longLabel)
+  assert.deepEqual([short.width, short.height], [12.5, 14.9])
+  assert.deepEqual([long.width, long.height], [32.8, 24.5])
+  assert.deepEqual([short.x, short.y], [element.x, element.y])
 })
 
 test('拡大は右端・下端で止まり、位置と商品情報を維持する', () => {
